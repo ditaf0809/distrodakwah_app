@@ -130,10 +130,7 @@
 									class="text-bold text-amber-9"
 									style="margin: 0; font-size: 10px"
 								>
-									Total Pendapatan :
-									<span class="text-green"
-										>Rp{{ currencyFormat(this.user.total_revenue) }}</span
-									>
+									Total Pendapatan : <span class="text-green">Rp{{currencyFormat(user.total_revenue)}}</span>
 								</p>
 							</div>
 						</div>
@@ -444,7 +441,7 @@ import {
 	orderService,
 	totalCartItemUrl
 } from "src/config";
-
+import currencyFormat from '../library/currencyFormat';
 // Loading
 import { QSpinnerPuff } from "quasar";
 //components
@@ -503,6 +500,7 @@ export default {
 	},
 	async created() {
 		this.getUser();
+		// this.user = JSON.parse(window.localStorage.getItem("profileUser"));
 		this.getBrand();
 		this.getSlider();
 		this.getProductByCategory();
