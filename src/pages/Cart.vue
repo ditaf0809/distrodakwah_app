@@ -1,5 +1,8 @@
 <template>
-	<MainLayout :HeaderProp="'Keranjang Belanja'">
+	<MainLayout
+		:HeaderProp="'Keranjang Belanja'"
+		v-if="Object.keys(globalState.userProfile).length > 0"
+	>
 		<template v-slot:main>
 			<q-page class="bg-white">
 				<div class="bg-grey-3" style="height: 100%">
@@ -185,7 +188,6 @@
 
 <script>
 import { mapState } from "vuex";
-import axios from "axios";
 import {
 	cartService,
 	catalogService,
@@ -236,7 +238,9 @@ export default {
 		...mapState(["globalState"])
 	},
 	async created() {
-		await this.$store.dispatch("globalState/getUserProfile");
+		if (Object.keys(this.globalState.userProfile).length === 0) {
+			await this.$store.dispatch("globalState/getUserProfile");
+		}
 
 		await this.getCartData();
 	},
@@ -277,7 +281,6 @@ export default {
 				console.log(error.message);
 			}
 			tempCart = cartRes.data.data;
-			console.log(cartRes);
 			if (
 				tempCart && // cart has been created
 				tempCart.cart_detail.length > 0
@@ -338,14 +341,17 @@ export default {
 
 		setShippingAddress() {
 			if (this.totalItem > 0) {
-				this.$router.push("/shipping");
+				this.$router.push({
+					name: "Shipping",
+					params: { cartData: this.cartData }
+				});
 			} else {
 				alert("Keranjang Belanja Masih Kosong!");
 			}
 		},
 
 		addCoupon() {
-			axios
+			this.$axios
 				.get(checkCouponUrl + "/" + this.couponCode, { headers: getHeader() })
 				.then(response => {
 					console.log(response);
@@ -359,7 +365,7 @@ export default {
 						postVoucher.set("coupon_discount", response.data.coupon_discount);
 
 						// Add Coupon
-						axios
+						this.$axios
 							.post(addVoucherCartUrl, postVoucher, { headers: getHeader() })
 							.then(response => {
 								console.log(response);
@@ -394,7 +400,7 @@ export default {
 				});
 		},
 		removeCoupon() {
-			axios
+			this.$axios
 				.delete(removeVoucherCartUrl + "/" + this.cartData.voucher_id, {
 					headers: getHeader()
 				})
