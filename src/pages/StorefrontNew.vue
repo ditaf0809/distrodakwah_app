@@ -441,13 +441,13 @@ import {
 	orderService,
 	totalCartItemUrl
 } from "src/config";
-import currencyFormat from '../library/currencyFormat';
 // Loading
 import { QSpinnerPuff } from "quasar";
 //components
 import VendorProductCard from "../components/vendorProductCard.vue";
 import KeepProductCard from "../components/keepProductCard.vue";
 import Vue2Filters from "vue2-filters";
+
 export default {
 	components: {
 		swiper,
