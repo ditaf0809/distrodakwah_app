@@ -65,27 +65,54 @@
 					</div>
 					<div style="background-color: white; margin-bottom: 5px">
 						<div class="row q-pa-lg items-center">
-							<div class="col">
+							<div class="col sender-details">
 								<h6
 									style="font-size: 14px; margin: 0 0 8px 0; font-family: 'Open Sans'; line-height: 18px; font-weight: bold"
 								>
 									Keterangan Pengirim :
 								</h6>
-								<div>
+								<div v-if="!shipAsDropshipper">
 									<div style="font-weight: bold">
 										Nama Pengirim:
 									</div>
-									<span v-if="useStoreName">{{ store.store_name }}</span>
-									<span v-else>{{ globalState.userProfile.name }}</span>
+									<q-banner dense class="sender-name">{{
+										globalState.userProfile.name
+									}}</q-banner>
+										<div style="font-weight: bold">
+										No Handphone:
+									</div>
+									<q-banner dense class="sender-name">{{
+										globalState.userProfile.phone
+									}}</q-banner>
+								</div>
+								<div v-else>
+									<q-input
+										type="text"
+										v-model="shipment.dropshipperName"
+										color="orange-8"
+										dense
+										class="bg-grey-2 q-mb-sm"
+										outlined
+										label="Nama Dropship"
+									/>
+									<q-input
+										type="text"
+										v-model="shipment.dropshipperPhoneNumber"
+										color="orange-8"
+										dense
+										class="bg-grey-2 q-mb-sm"
+										outlined
+										label="Nomor HP Dropshipper"
+									/>
 								</div>
 								<div>
 									<input
-										v-model="useStoreName"
+										v-model="shipAsDropshipper"
 										type="checkbox"
 										name="useStoreName"
 										style="margin: 5px"
 									/>
-									<label for="useStoreName">Gunakan Nama Toko</label>
+									<label for="useStoreName">Kirim Sebagai Dropshipper</label>
 								</div>
 							</div>
 						</div>
@@ -96,9 +123,12 @@
 								<h6
 									style="font-size: 14px; margin: 0 0 8px 0; font-family: 'Open Sans'; line-height: 18px; font-weight: bold"
 								>
-									Keterangan Penerima :
+									Keterangan Penerima:
 								</h6>
-								<template v-if="dataCustomerSelected !== null">
+								<template
+									v-if="dataCustomerSelected !== null"
+									class="sender-name"
+								>
 									<h6
 										style="font-size: 12px; margin: 0; font-family: 'Open Sans'; line-height: 18px; font-weight: bold"
 										class="text-blue-10"
@@ -241,8 +271,8 @@
 											<div class="col-12">
 												<q-input
 													v-model="shipment.shippingCost"
-													color="orange-8"
 													type="text"
+													color="orange-8"
 													dense
 													class="bg-grey-2 q-mb-sm"
 													outlined
@@ -513,15 +543,13 @@ import {
 	getCostShippingUrl,
 	getHeader
 } from "src/config";
-import { getStoreUrl } from "../config";
 
 export default {
 	name: "Shipping",
 	data() {
 		return {
 			// user's Store
-			store: {},
-			useStoreName: false,
+			shipAsDropshipper: false,
 			// Detail Address
 			dataCustomerSelected: null,
 			courierOptions: [
@@ -541,6 +569,7 @@ export default {
 						'<div class="row"><div class="self-center" style="margin-right: 10px">POS</div> <img src="https://i.imgur.com/2VEBPMp.png" height="20" /></div>'
 				}
 			],
+
 			// Form Add New Customer
 			customerName: "",
 			customerPhone: "",
@@ -561,7 +590,10 @@ export default {
 			resiOtomatis: false,
 			serviceSelectedRadio: null,
 			cartData: this.$route.params.cartData,
-			shipment: {}
+			shipment: {
+				dropshipperName: "",
+				dropshipperPhoneNumber: ""
+			}
 		};
 	},
 	computed: {
@@ -592,23 +624,9 @@ export default {
 	created() {
 		this.getCustomers();
 		this.getProvince();
-		this.getStore();
 	},
 	mounted() {},
 	methods: {
-		async getStore() {
-			try {
-				const storeRes = await this.$axios({
-					method: "get",
-					url: `${getStoreUrl}/${this.globalState.userProfile.id}`,
-					headers: getHeader()
-				});
-				this.store = storeRes.data.data;
-			} catch (error) {
-				console.log("error fetching users store data");
-				console.log(error.message);
-			}
-		},
 		getCustomers() {
 			this.$axios
 				.get(getCustomerUrl + "/" + this.globalState.userProfile.id, {
@@ -766,6 +784,20 @@ export default {
 		},
 
 		reviewOrder() {
+			// has chosen as dropshipper but didnt fille out dropshipper form
+			if (
+				this.shipAsDropshipper &&
+				(!this.shipment.dropshipperName ||
+					!this.shipment.dropshipperPhoneNumber)
+			) {
+				this.$q.notify({
+					position: "top",
+					color: "red",
+					message: "Mohon Lengkapi Form Dropshipper"
+				});
+				return -1;
+			}
+
 			if (["resiOtomatis", "courierService"].includes(this.allowOrder)) {
 				if (this.allowOrder == "resiOtomatis") {
 					this.shipment.shippingCost -= this.shipment.shippingCostCut;
@@ -778,9 +810,8 @@ export default {
 							...this.shipment,
 							destinationId: this.dataCustomerSelected.id,
 							type: this.allowOrder,
-							useStoreName: this.useStoreName
+							shipAsDropshipper: this.shipAsDropshipper
 						},
-						cartData: this.$route.params.cartData
 					}
 				});
 			} else {
@@ -800,4 +831,26 @@ export default {
 };
 </script>
 
-<style></style>
+<style>
+.sender-details {
+	display: grid;
+}
+
+.sender-name {
+	background: orange;
+	color: white;
+	border-radius: 5px;
+	font-style: italic;
+}
+
+.no-store-name {
+	background: orange;
+	min-height: 0;
+	color: white;
+	/* padding: 0; */
+}
+
+.no-store-name .to-store {
+	background: cornflowerblue;
+}
+</style>
